@@ -24,20 +24,10 @@ jobs:
           rm -rf ~/.buildozer
           rm -rf bin
 
-      - name: Build APK with verbose logging
+      - name: Build APK
         run: |
           export PATH=$PATH:$HOME/.local/bin
-          # Aumentar nivel de log a 2 para más detalles
-          sed -i 's/log_level = .*/log_level = 2/' buildozer.spec
-          # Ejecutar con timeout largo
-          yes | buildozer -v android debug 2>&1 | tee build_log.txt
-
-      - name: Upload build logs
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: Build-Logs
-          path: build_log.txt
+          yes | buildozer -v android debug
 
       - name: Upload APK
         if: success()
