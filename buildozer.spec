@@ -9,7 +9,7 @@ source.include_exts = py,png,jpg,kv,db
 
 version = 1.0.0
 
-requirements = python3,kivy,pyjnius,sqlite3
+requirements = python3==3.10.0,kivy,pyjnius,sqlite3
 
 orientation = portrait
 fullscreen = 0
@@ -29,7 +29,7 @@ android.build_tools = 33.0.2
 # Servicio de filtrado de llamadas
 android.add_services = service.py
 
-# Forzar versión de libffi para evitar errores en Ubuntu 24.04
+# Forzar versión de libffi para evitar errores en Ubuntu
 android.ndk_shared = False
 android.allow_ndk_ffi = True
 
