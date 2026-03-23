@@ -8,7 +8,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Build with Buildozer
-        uses: Enteee/buildozer-action@v1.2.2
+        uses: enteee/buildozer-action@v1.2.2
         with:
           buildozer_version: master
           command: buildozer android debug
