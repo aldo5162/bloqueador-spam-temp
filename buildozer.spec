@@ -1,30 +1,35 @@
 [app]
+
 title = Bloqueador Spam
 package.name = bloqueador_spam
-package.domain = org.bloqueador_sapam.app
+package.domain = org.bloqueador_spam.app
+
 source.dir = .
 source.include_exts = py,png,jpg,kv,db
-version = 1.0
 
-# Requisitos indispensables
-requirements = python3,kivy,jnius,sqlite3
+version = 1.0.0
 
-# Orientación y pantalla
+requirements = python3,kivy,pyjnius,sqlite3
+
 orientation = portrait
 fullscreen = 0
 
-# PERMISOS CRÍTICOS (Para Android 13+)
-android.permissions = android.permission.READ_PHONE_STATE, android.permission.ANSWER_PHONE_CALLS, android.permission.MODIFY_PHONE_STATE, android.permission.READ_CALL_LOG, android.permission.FOREGROUND_SERVICE
+# Permisos mínimos necesarios para CallScreeningService
+android.permissions = android.permission.READ_PHONE_STATE
 
-# Configuración de API para Android 13
+# API level 33 = Android 13
 android.api = 33
 android.minapi = 21
 android.ndk = 25b
 android.sdk = 33
 
-# Registro del servicio de fondo (el que "escucha" las llamadas)
-android.services = FiltroSpam:service.py
+# Servicio de filtrado de llamadas (USANDO service.py)
+android.add_services = service.py
+
+# Metadatos para que Android reconozca el servicio como CallScreeningService
+android.gradle_dependencies = 'androidx.core:core:1.9.0'
 
 [buildozer]
+
 log_level = 2
 warn_on_root = 1
