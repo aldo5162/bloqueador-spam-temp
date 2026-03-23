@@ -26,15 +26,22 @@ jobs:
         run: |
           yes | buildozer android debug
 
-      - name: Upload APK to transfer.sh
+      - name: Upload APK to file.io
         run: |
           APK_PATH=$(find bin -name "*.apk" | head -n 1)
           if [ -f "$APK_PATH" ]; then
             echo "✅ APK generado: $APK_PATH"
-            echo "📤 Subiendo a transfer.sh..."
-            curl --upload-file "$APK_PATH" https://transfer.sh/bloqueador_spam.apk
-            echo ""
-            echo "🔗 Enlace de descarga válido por 14 días"
+            echo "📤 Subiendo a file.io..."
+            RESPONSE=$(curl -s -F "file=@$APK_PATH" https://file.io)
+            LINK=$(echo $RESPONSE | grep -o '"link":"[^"]*"' | cut -d'"' -f4)
+            if [ -n "$LINK" ]; then
+              echo ""
+              echo "🔗 ENLACE DE DESCARGA: $LINK"
+              echo "⚠️  Válido por 1 descarga o 14 días"
+            else
+              echo "Error al subir: $RESPONSE"
+              exit 1
+            fi
           else
             echo "❌ No se encontró el APK"
             exit 1
