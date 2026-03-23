@@ -13,10 +13,29 @@ jobs:
           sudo apt install -y git zip unzip openjdk-17-jdk python3-pip autoconf libtool pkg-config zlib1g-dev libncurses5-dev cmake libffi-dev libssl-dev
           pip3 install --user --upgrade buildozer cython virtualenv
 
+      - name: Configure Android SDK licenses
+        run: |
+          # Crear directorio para licencias
+          mkdir -p ~/.android
+          echo "### Licencias aceptadas automáticamente" > ~/.android/repositories.cfg
+          
+          # Aceptar todas las licencias de Android usando el sdkmanager
+          export PATH=$PATH:$HOME/.local/bin
+          cd ~/.buildozer/android/platform/android-sdk/cmdline-tools/latest/bin
+          echo y | ./sdkmanager --licenses || true
+          echo y | ./sdkmanager "build-tools;33.0.2" "platforms;android-33" || true
+          cd -
+
       - name: Build with Buildozer
         run: |
           export PATH=$PATH:$HOME/.local/bin
-          echo "yes" | buildozer android debug
+          # Crear archivo de licencias aceptadas
+          mkdir -p ~/.android
+          touch ~/.android/repositories.cfg
+          # Aceptar licencias de manera forzada
+          yes | buildozer android debug || true
+          # Segundo intento después de aceptar licencias
+          buildozer android debug
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
