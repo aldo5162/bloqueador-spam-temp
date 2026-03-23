@@ -23,6 +23,9 @@ android.minapi = 21
 android.ndk = 25b
 android.sdk = 33
 
+# Forzar una versión específica de build-tools (estable)
+android.build_tools = 33.0.2
+
 # Servicio de filtrado de llamadas (USANDO service.py)
 android.add_services = service.py
 

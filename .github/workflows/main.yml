@@ -21,11 +21,8 @@ jobs:
       - name: Build APK
         run: |
           export PATH=$PATH:$HOME/.local/bin
-          # Configurar para aceptar todas las licencias automáticamente
-          export ANDROID_SDK_ROOT=~/.buildozer/android/platform/android-sdk
-          echo y | buildozer android debug || true
-          # Segundo intento después de que las licencias se hayan aceptado
-          buildozer android debug
+          # Forzar aceptación de licencias
+          yes | buildozer android debug
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
