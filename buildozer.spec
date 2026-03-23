@@ -26,8 +26,12 @@ android.sdk = 33
 # Forzar una versión específica de build-tools (estable)
 android.build_tools = 33.0.2
 
-# Servicio de filtrado de llamadas (USANDO service.py)
+# Servicio de filtrado de llamadas
 android.add_services = service.py
+
+# Forzar versión de libffi para evitar errores en Ubuntu 24.04
+android.ndk_shared = False
+android.allow_ndk_ffi = True
 
 # Metadatos para que Android reconozca el servicio como CallScreeningService
 android.gradle_dependencies = 'androidx.core:core:1.9.0'

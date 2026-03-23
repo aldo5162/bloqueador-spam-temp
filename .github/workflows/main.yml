@@ -1,37 +1,29 @@
 name: Build Android APK
-on: [push, pull_request]
+on: [push]
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install dependencies
-        run: |
-          sudo apt update
-          sudo apt install -y git zip unzip openjdk-17-jdk python3-pip autoconf libtool pkg-config zlib1g-dev libncurses5-dev cmake libffi-dev libssl-dev
-          pip3 install --user --upgrade buildozer cython virtualenv
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
 
-      - name: Create Android license directory
+      - name: Install buildozer
         run: |
-          mkdir -p ~/.android
-          echo "### Licenses accepted" > ~/.android/repositories.cfg
-
-      - name: Clean previous builds
-        run: |
-          export PATH=$PATH:$HOME/.local/bin
-          rm -rf ~/.buildozer
-          rm -rf bin
+          pip install buildozer cython
 
       - name: Build APK
         run: |
-          export PATH=$PATH:$HOME/.local/bin
-          yes | buildozer -v android debug
+          rm -rf .buildozer bin
+          yes | buildozer android debug
 
       - name: Upload APK
-        if: success()
         uses: actions/upload-artifact@v4
         with:
-          name: BloqueadorSpam-Debug
+          name: BloqueadorSpam
           path: bin/*.apk
+          retention-days: 1
