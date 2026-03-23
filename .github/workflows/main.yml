@@ -13,28 +13,34 @@ jobs:
           sudo apt install -y git zip unzip openjdk-17-jdk python3-pip autoconf libtool pkg-config zlib1g-dev libncurses5-dev cmake libffi-dev libssl-dev
           pip3 install --user --upgrade buildozer cython virtualenv
 
-      - name: Configure Android SDK licenses
-        run: |
-          # Crear directorio para licencias
-          mkdir -p ~/.android
-          echo "### Licencias aceptadas automáticamente" > ~/.android/repositories.cfg
-          
-          # Aceptar todas las licencias de Android usando el sdkmanager
-          export PATH=$PATH:$HOME/.local/bin
-          cd ~/.buildozer/android/platform/android-sdk/cmdline-tools/latest/bin
-          echo y | ./sdkmanager --licenses || true
-          echo y | ./sdkmanager "build-tools;33.0.2" "platforms;android-33" || true
-          cd -
-
-      - name: Build with Buildozer
+      - name: Build with Buildozer (first pass to initialize SDK)
         run: |
           export PATH=$PATH:$HOME/.local/bin
-          # Crear archivo de licencias aceptadas
+          # Crear archivo de configuración de licencias
           mkdir -p ~/.android
           touch ~/.android/repositories.cfg
-          # Aceptar licencias de manera forzada
+          # Primer intento - esto descargará el SDK y fallará por licencias
           yes | buildozer android debug || true
-          # Segundo intento después de aceptar licencias
+
+      - name: Accept Android SDK licenses
+        run: |
+          export PATH=$PATH:$HOME/.local/bin
+          # Buscar el sdkmanager en la ubicación correcta
+          SDKMANAGER_PATH=$(find ~/.buildozer -name "sdkmanager" -type f 2>/dev/null | head -n 1)
+          
+          if [ -n "$SDKMANAGER_PATH" ]; then
+            echo "sdkmanager encontrado en: $SDKMANAGER_PATH"
+            echo y | $SDKMANAGER_PATH --licenses
+            # Instalar build-tools específicos
+            $SDKMANAGER_PATH "build-tools;33.0.2" "platforms;android-33"
+          else
+            echo "sdkmanager no encontrado, continuando de todos modos"
+          fi
+
+      - name: Build final APK
+        run: |
+          export PATH=$PATH:$HOME/.local/bin
+          # Construcción final
           buildozer android debug
 
       - name: Upload APK
