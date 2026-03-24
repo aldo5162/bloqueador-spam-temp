@@ -110,18 +110,30 @@ class BloqueadorApp(App):
         self.lista_layout.clear_widgets()
         self.cursor.execute("SELECT prefijo FROM spam ORDER BY prefijo")
         for (p,) in self.cursor.fetchall():
+            # Layout horizontal para cada ítem
             item_layout = BoxLayout(size_hint_y=None, height=40)
-            lbl = Label(text=f"🔴 {p}", size_hint_x=0.8)
-            btn_eliminar = Button(text="X", size_hint_x=0.2, background_color=(0.5, 0.1, 0.1, 1))
+
+            # Label con el prefijo/número
+            lbl = Label(text=f"🔴 {p}", size_hint_x=0.7)
+
+            # Botón eliminar
+            btn_eliminar = Button(
+                text="ELIMINAR",
+                size_hint_x=0.3,
+                background_color=(0.8, 0.2, 0.2, 1)
+            )
             btn_eliminar.bind(on_press=lambda inst, pref=p: self.eliminar_prefijo(pref))
+
             item_layout.add_widget(lbl)
             item_layout.add_widget(btn_eliminar)
             self.lista_layout.add_widget(item_layout)
 
     def eliminar_prefijo(self, prefijo):
+        """Elimina un prefijo/número de la lista de bloqueados"""
         self.cursor.execute("DELETE FROM spam WHERE prefijo = ?", (prefijo,))
         self.conn.commit()
         self.actualizar_lista_visual()
+        self.mostrar_mensaje("Eliminado", f"{prefijo} ya no será bloqueado")
 
     def mostrar_mensaje(self, titulo, mensaje):
         popup = Popup(

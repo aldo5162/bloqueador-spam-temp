@@ -20,29 +20,22 @@ jobs:
 
       - name: Install buildozer
         run: |
+          pip install --upgrade pip
           pip install buildozer cython==0.29.36 wheel
+
+      - name: Clean previous builds
+        run: |
+          rm -rf .buildozer
+          rm -rf bin
+          rm -rf ~/.buildozer
 
       - name: Build APK
         run: |
           yes | buildozer android debug
 
-      - name: Upload APK to file.io
-        run: |
-          APK_PATH=$(find bin -name "*.apk" | head -n 1)
-          if [ -f "$APK_PATH" ]; then
-            echo "✅ APK generado: $APK_PATH"
-            echo "📤 Subiendo a file.io..."
-            RESPONSE=$(curl -s -F "file=@$APK_PATH" https://file.io)
-            LINK=$(echo $RESPONSE | grep -o '"link":"[^"]*"' | cut -d'"' -f4)
-            if [ -n "$LINK" ]; then
-              echo ""
-              echo "🔗 ENLACE DE DESCARGA: $LINK"
-              echo "⚠️  Válido por 1 descarga o 14 días"
-            else
-              echo "Error al subir: $RESPONSE"
-              exit 1
-            fi
-          else
-            echo "❌ No se encontró el APK"
-            exit 1
-          fi
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: BloqueadorSpam
+          path: bin/*.apk
+          retention-days: 1

@@ -9,7 +9,8 @@ source.include_exts = py,png,jpg,kv,db
 
 version = 1.0.0
 
-requirements = python3==3.10.0,kivy,pyjnius,sqlite3
+# Versiones específicas que funcionan bien juntas
+requirements = python3==3.10.0, kivy==2.1.0, pyjnius==1.4.0, sqlite3, cython==0.29.36
 
 orientation = portrait
 fullscreen = 0
@@ -24,8 +25,8 @@ android.build_tools = 33.0.2
 
 android.add_services = service.py
 
-# Temporalmente comentada para evitar error de sintaxis en build.gradle
-# android.gradle_dependencies = 'androidx.core:core:1.9.0'
+# Dependencia necesaria para CallScreeningService
+android.gradle_dependencies = 'androidx.core:core:1.9.0'
 
 [buildozer]
 
