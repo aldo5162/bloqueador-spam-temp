@@ -9,7 +9,6 @@ source.include_exts = py,png,jpg,kv,db
 
 version = 1.0.0
 
-# Versiones específicas que funcionan bien juntas
 requirements = python3==3.10.0, kivy==2.1.0, pyjnius==1.4.0, sqlite3, cython==0.29.36
 
 orientation = portrait
@@ -21,7 +20,7 @@ android.api = 33
 android.minapi = 21
 android.ndk = 25b
 android.sdk = 33
-android.build_tools = 33.0.2
+android.build_tools = 30.0.3
 
 android.add_services = service.py
 
