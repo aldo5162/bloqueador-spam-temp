@@ -24,8 +24,8 @@ android.build_tools = 30.0.3
 
 android.add_services = service.py
 
-# Dependencia necesaria para CallScreeningService
-android.gradle_dependencies = 'androidx.core:core:1.9.0'
+# La dependencia androidx.core no es necesaria explícitamente
+# android.gradle_dependencies = androidx.core:core:1.9.0
 
 [buildozer]
 
