@@ -122,55 +122,67 @@ class BloqueadorApp(App):
     def mostrar_mensaje(self, titulo, mensaje):
         popup = Popup(
             title=titulo,
-            content=Label(text=mensaje),
-            size_hint=(0.8, 0.4)
+            content=Label(
+                text=mensaje,
+                halign='left',
+                valign='top',
+                text_size=(self.main_layout.width * 0.8, None)
+            ),
+            size_hint=(0.9, 0.5),
+            title_size=18
         )
         popup.open()
-        Clock.schedule_once(lambda dt: popup.dismiss(), 2)
+        Clock.schedule_once(lambda dt: popup.dismiss(), 4)
 
     def solicitar_rol_filtrado(self, dt):
+        """Solicita al usuario que active la app como filtro de llamadas"""
         if platform == 'android':
             try:
                 from jnius import autoclass
-                from android import activity
+
+                PythonActivity = autoclass('org.kivy.android.PythonActivity')
+                current_activity = PythonActivity.mActivity
 
                 Context = autoclass('android.content.Context')
                 RoleManager = autoclass('android.app.role.RoleManager')
 
-                role_manager = activity.getSystemService(Context.ROLE_SERVICE)
+                role_manager = current_activity.getSystemService(Context.ROLE_SERVICE)
 
                 if role_manager.isRoleAvailable(RoleManager.ROLE_CALL_SCREENING):
                     if not role_manager.isRoleHeld(RoleManager.ROLE_CALL_SCREENING):
                         intent = role_manager.createRequestRoleIntent(RoleManager.ROLE_CALL_SCREENING)
-                        activity.startActivityForResult(intent, 1001)
+                        current_activity.startActivityForResult(intent, 1001)
             except Exception as e:
-                print(f"Error al solicitar rol: {e}")
+                print(f"Error al solicitar rol: \n{e}")
 
     def verificar_rol(self, instance):
         """Verifica si la app tiene el rol de filtrado activado"""
         if platform == 'android':
             try:
                 from jnius import autoclass
-                from android import activity
+
+                PythonActivity = autoclass('org.kivy.android.PythonActivity')
+                current_activity = PythonActivity.mActivity
 
                 Context = autoclass('android.content.Context')
                 RoleManager = autoclass('android.app.role.RoleManager')
 
-                role_manager = activity.getSystemService(Context.ROLE_SERVICE)
+                role_manager = current_activity.getSystemService(Context.ROLE_SERVICE)
 
                 if role_manager.isRoleHeld(RoleManager.ROLE_CALL_SCREENING):
-                    self.mostrar_mensaje("✅ Activado", "La app tiene permiso para filtrar llamadas")
+                    self.mostrar_mensaje("✅ Activado", "La app tiene permiso\npara filtrar llamadas")
                 else:
-                    self.mostrar_mensaje("⚠️ No activado", "Debes otorgar el permiso de filtrado en Configuración")
+                    self.mostrar_mensaje("⚠️ No activado", "Debes otorgar el permiso\nde filtrado en Configuración")
 
+                    # Solicitar el rol
                     intent = role_manager.createRequestRoleIntent(RoleManager.ROLE_CALL_SCREENING)
-                    activity.startActivityForResult(intent, 1001)
+                    current_activity.startActivityForResult(intent, 1001)
 
             except Exception as e:
-                self.mostrar_mensaje("Error", f"No se pudo verificar: {e}")
+                self.mostrar_mensaje("Error", f"No se pudo verificar:\n{str(e)}")
                 print(f"Error: {e}")
         else:
-            self.mostrar_mensaje("Solo Android", "Esta función solo está disponible en Android")
+            self.mostrar_mensaje("Solo Android", "Esta función solo\nestá disponible en Android")
 
 
 if __name__ == '__main__':
