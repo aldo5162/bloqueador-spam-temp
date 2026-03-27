@@ -1,5 +1,8 @@
 name: Build Android APK
-on: [push]
+on:
+  push:
+    branches: [ main, master ]
+  workflow_dispatch:
 
 jobs:
   build:
@@ -27,9 +30,11 @@ jobs:
         run: |
           yes | buildozer android debug
 
-      - name: Upload APK
-        uses: actions/upload-artifact@v4
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
         with:
-          name: BloqueadorSpam
-          path: bin/*.apk
-          retention-days: 1
+          tag_name: build-${{ github.run_number }}
+          name: APK Build ${{ github.run_number }}
+          files: bin/*.apk
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
