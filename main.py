@@ -28,7 +28,7 @@ class BloqueadorApp(App):
             text="[b]BLOQUEADOR DE SPAM[/b]\n[small]Llama 600 y 809 bloqueadas[/small]",
             markup=True,
             size_hint_y=None,
-            height=60
+            height=80
         ))
 
         # Entrada de número
@@ -36,7 +36,7 @@ class BloqueadorApp(App):
             hint_text="Ej: 600 o 809 o 912345678",
             multiline=False,
             size_hint_y=None,
-            height=50
+            height=80
         )
         self.main_layout.add_widget(self.input_num)
 
@@ -45,7 +45,7 @@ class BloqueadorApp(App):
             text="BLOQUEAR ESTE PREFIJO/NÚMERO",
             background_color=(0.9, 0.2, 0.2, 1),
             size_hint_y=None,
-            height=50
+            height=80
         )
         btn_add.bind(on_press=self.agregar_a_db)
         self.main_layout.add_widget(btn_add)
@@ -54,12 +54,12 @@ class BloqueadorApp(App):
         self.main_layout.add_widget(Label(
             text="Prefijos y números bloqueados:",
             size_hint_y=None,
-            height=30
+            height=40
         ))
 
         # Lista de números bloqueados
         self.scroll = ScrollView()
-        self.lista_layout = GridLayout(cols=1, spacing=5, size_hint_y=None)
+        self.lista_layout = GridLayout(cols=1, spacing=8, size_hint_y=None)
         self.lista_layout.bind(minimum_height=self.lista_layout.setter('height'))
         self.actualizar_lista_visual()
 
@@ -70,7 +70,7 @@ class BloqueadorApp(App):
         btn_estado = Button(
             text="VERIFICAR PERMISO DE FILTRADO",
             size_hint_y=None,
-            height=50
+            height=80
         )
         btn_estado.bind(on_press=self.verificar_rol)
         self.main_layout.add_widget(btn_estado)
@@ -111,7 +111,7 @@ class BloqueadorApp(App):
         self.cursor.execute("SELECT prefijo FROM spam ORDER BY prefijo")
         for (p,) in self.cursor.fetchall():
             # Layout horizontal para cada ítem
-            item_layout = BoxLayout(size_hint_y=None, height=40)
+            item_layout = BoxLayout(size_hint_y=None, height=60)
 
             # Label con el prefijo/número
             lbl = Label(text=f"🔴 {p}", size_hint_x=0.7)
@@ -148,12 +148,11 @@ class BloqueadorApp(App):
         """Solicita al usuario que active la app como filtro de llamadas"""
         if platform == 'android':
             try:
-                from jnius import autoclass, cast
+                from jnius import autoclass
                 from android import activity
 
                 Context = autoclass('android.content.Context')
                 RoleManager = autoclass('android.app.role.RoleManager')
-                Intent = autoclass('android.content.Intent')
 
                 role_manager = activity.getSystemService(Context.ROLE_SERVICE)
 
@@ -166,24 +165,31 @@ class BloqueadorApp(App):
 
     def verificar_rol(self, instance):
         """Verifica si la app tiene el rol de filtrado activado"""
-        if platform == 'android':
-            try:
-                from jnius import autoclass
-                from android import activity
 
-                Context = autoclass('android.content.Context')
-                RoleManager = autoclass('android.app.role.RoleManager')
+    if platform == 'android':
+        try:
+            from jnius import autoclass
+            from android import activity
 
-                role_manager = activity.getSystemService(Context.ROLE_SERVICE)
+            Context = autoclass('android.content.Context')
+            RoleManager = autoclass('android.app.role.RoleManager')
 
-                if role_manager.isRoleHeld(RoleManager.ROLE_CALL_SCREENING):
-                    self.mostrar_mensaje("✅ Activado", "La app tiene permiso para filtrar llamadas")
-                else:
-                    self.mostrar_mensaje("⚠️ No activado", "Debes otorgar el permiso de filtrado en Configuración")
-            except Exception as e:
-                print(f"Error: {e}")
-        else:
-            self.mostrar_mensaje("Solo Android", "Esta función solo está disponible en Android")
+            role_manager = activity.getSystemService(Context.ROLE_SERVICE)
+
+            if role_manager.isRoleHeld(RoleManager.ROLE_CALL_SCREENING):
+                self.mostrar_mensaje("✅ Activado", "La app tiene permiso para filtrar llamadas")
+            else:
+                self.mostrar_mensaje("⚠️ No activado", "Debes otorgar el permiso de filtrado en Configuración")
+
+                # Intentar abrir la configuración de permisos especiales
+                intent = role_manager.createRequestRoleIntent(RoleManager.ROLE_CALL_SCREENING)
+                activity.startActivityForResult(intent, 1001)
+
+        except Exception as e:
+            self.mostrar_mensaje("Error", f"No se pudo verificar: {e}")
+            print(f"Error: {e}")
+    else:
+        self.mostrar_mensaje("Solo Android", "Esta función solo está disponible en Android")
 
 
 if __name__ == '__main__':

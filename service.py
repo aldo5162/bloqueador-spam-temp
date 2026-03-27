@@ -6,12 +6,13 @@ Implementa CallScreeningService usando pyjnius
 from jnius import autoclass, PythonJavaClass, java_method
 import sqlite3
 import re
+import os
+from kivy.utils import platform
 
 # Clases Java necesarias
 CallScreeningService = autoclass('android.telecom.CallScreeningService')
 Call = autoclass('android.telecom.Call')
 CallResponse = autoclass('android.telecom.CallResponse')
-Uri = autoclass('android.net.Uri')
 
 
 def limpiar_numero(numero):
@@ -24,7 +25,14 @@ def limpiar_numero(numero):
 def obtener_prefijos_bloqueados():
     """Lee la base de datos y devuelve la lista de prefijos/números a bloquear"""
     try:
-        conn = sqlite3.connect('/data/data/org.bloqueador_spam.app/files/bloqueador.db')
+        # Obtener la ruta correcta de la base de datos
+        if platform == 'android':
+            from android.storage import app_storage_path
+            db_path = os.path.join(app_storage_path(), 'bloqueador.db')
+        else:
+            db_path = 'bloqueador.db'
+
+        conn = sqlite3.connect(db_path)
         cursor = conn.cursor()
         cursor.execute("SELECT prefijo FROM spam")
         prefijos = [row[0] for row in cursor.fetchall()]
