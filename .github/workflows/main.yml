@@ -1,8 +1,12 @@
 name: Build Android APK
+<<<<<<< HEAD
 on:
   push:
     branches: [ main, master ]
   workflow_dispatch:
+=======
+on: [push]
+>>>>>>> ec116d98b2e90e1d9da2e59b63dab4b9fc01f64b
 
 jobs:
   build:
@@ -30,6 +34,7 @@ jobs:
         run: |
           yes | buildozer android debug
 
+<<<<<<< HEAD
       - name: Create Release
         uses: softprops/action-gh-release@v1
         with:
@@ -38,3 +43,11 @@ jobs:
           files: bin/*.apk
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+=======
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: BloqueadorSpam
+          path: bin/*.apk
+          retention-days: 1
+>>>>>>> ec116d98b2e90e1d9da2e59b63dab4b9fc01f64b
