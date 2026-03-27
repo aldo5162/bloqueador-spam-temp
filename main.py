@@ -16,14 +16,11 @@ class BloqueadorApp(App):
     def build(self):
         self.init_db()
 
-        # Si estamos en Android, solicitamos el rol de filtrado
         if platform == 'android':
             Clock.schedule_once(self.solicitar_rol_filtrado, 1)
 
-        # Layout principal
         self.main_layout = BoxLayout(orientation='vertical', padding=20, spacing=15)
 
-        # Título
         self.main_layout.add_widget(Label(
             text="[b]BLOQUEADOR DE SPAM[/b]\n[small]Llama 600 y 809 bloqueadas[/small]",
             markup=True,
@@ -31,7 +28,6 @@ class BloqueadorApp(App):
             height=80
         ))
 
-        # Entrada de número
         self.input_num = TextInput(
             hint_text="Ej: 600 o 809 o 912345678",
             multiline=False,
@@ -40,7 +36,6 @@ class BloqueadorApp(App):
         )
         self.main_layout.add_widget(self.input_num)
 
-        # Botón agregar
         btn_add = Button(
             text="BLOQUEAR ESTE PREFIJO/NÚMERO",
             background_color=(0.9, 0.2, 0.2, 1),
@@ -50,14 +45,12 @@ class BloqueadorApp(App):
         btn_add.bind(on_press=self.agregar_a_db)
         self.main_layout.add_widget(btn_add)
 
-        # Separador
         self.main_layout.add_widget(Label(
             text="Prefijos y números bloqueados:",
             size_hint_y=None,
             height=40
         ))
 
-        # Lista de números bloqueados
         self.scroll = ScrollView()
         self.lista_layout = GridLayout(cols=1, spacing=8, size_hint_y=None)
         self.lista_layout.bind(minimum_height=self.lista_layout.setter('height'))
@@ -66,7 +59,6 @@ class BloqueadorApp(App):
         self.scroll.add_widget(self.lista_layout)
         self.main_layout.add_widget(self.scroll)
 
-        # Botón para verificar estado del rol
         btn_estado = Button(
             text="VERIFICAR PERMISO DE FILTRADO",
             size_hint_y=None,
@@ -84,7 +76,6 @@ class BloqueadorApp(App):
             prefijo TEXT UNIQUE,
             fecha_agregado TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )''')
-        # Insertar valores por defecto (600 y 809)
         for prefijo in ['600', '809']:
             try:
                 self.cursor.execute("INSERT INTO spam (prefijo) VALUES (?)", (prefijo,))
@@ -110,26 +101,19 @@ class BloqueadorApp(App):
         self.lista_layout.clear_widgets()
         self.cursor.execute("SELECT prefijo FROM spam ORDER BY prefijo")
         for (p,) in self.cursor.fetchall():
-            # Layout horizontal para cada ítem
             item_layout = BoxLayout(size_hint_y=None, height=60)
-
-            # Label con el prefijo/número
             lbl = Label(text=f"🔴 {p}", size_hint_x=0.7)
-
-            # Botón eliminar
             btn_eliminar = Button(
                 text="ELIMINAR",
                 size_hint_x=0.3,
                 background_color=(0.8, 0.2, 0.2, 1)
             )
             btn_eliminar.bind(on_press=lambda inst, pref=p: self.eliminar_prefijo(pref))
-
             item_layout.add_widget(lbl)
             item_layout.add_widget(btn_eliminar)
             self.lista_layout.add_widget(item_layout)
 
     def eliminar_prefijo(self, prefijo):
-        """Elimina un prefijo/número de la lista de bloqueados"""
         self.cursor.execute("DELETE FROM spam WHERE prefijo = ?", (prefijo,))
         self.conn.commit()
         self.actualizar_lista_visual()
@@ -145,7 +129,6 @@ class BloqueadorApp(App):
         Clock.schedule_once(lambda dt: popup.dismiss(), 2)
 
     def solicitar_rol_filtrado(self, dt):
-        """Solicita al usuario que active la app como filtro de llamadas"""
         if platform == 'android':
             try:
                 from jnius import autoclass
@@ -180,7 +163,6 @@ class BloqueadorApp(App):
                 else:
                     self.mostrar_mensaje("⚠️ No activado", "Debes otorgar el permiso de filtrado en Configuración")
 
-                    # Intentar abrir la configuración de permisos especiales
                     intent = role_manager.createRequestRoleIntent(RoleManager.ROLE_CALL_SCREENING)
                     activity.startActivityForResult(intent, 1001)
 
