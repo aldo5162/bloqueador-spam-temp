@@ -9,7 +9,6 @@ source.include_exts = py,png,jpg,kv,db
 
 version = 1.0.0
 
-# CORREGIDO: python3 sin versión específica
 requirements = python3, kivy==2.1.0, pyjnius==1.4.0, sqlite3, cython==0.29.36
 
 orientation = portrait
@@ -23,10 +22,11 @@ android.ndk = 25b
 android.sdk = 33
 android.build_tools = 30.0.3
 
+# Servicio de filtrado de llamadas
 android.add_services = service.py
 
-# Sin gradle_dependencies para evitar errores
-# android.gradle_dependencies = androidx.core:core:1.9.0
+# Permiso necesario para CallScreeningService
+android.gradle_dependencies = androidx.core:core:1.9.0
 
 [buildozer]
 
