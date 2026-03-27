@@ -20,7 +20,10 @@ android.api = 33
 android.minapi = 21
 android.ndk = 25b
 android.sdk = 33
-android.build_tools = 30.0.3
+android.build_tools = 33.0.0
+
+# Forzar descarga de build-tools
+android.accept_sdk_license = True
 
 android.add_services = service.py
 android.manifest_template = AndroidManifest.tmpl.xml
