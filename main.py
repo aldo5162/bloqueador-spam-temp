@@ -164,25 +164,31 @@ class BloqueadorApp(App):
                 print(f"Error al solicitar rol: {e}")
 
     def verificar_rol(self, instance):
-        """Verifica si la app tiene el rol de filtrado activado"""
-        if platform == 'android':
-            try:
-                from jnius import autoclass
-                from android import activity
-
-                Context = autoclass('android.content.Context')
-                RoleManager = autoclass('android.app.role.RoleManager')
-
-                role_manager = activity.getSystemService(Context.ROLE_SERVICE)
-
-                if role_manager.isRoleHeld(RoleManager.ROLE_CALL_SCREENING):
-                    self.mostrar_mensaje("✅ Activado", "La app tiene permiso para filtrar llamadas")
-                else:
-                    self.mostrar_mensaje("⚠️ No activado", "Debes otorgar el permiso de filtrado en Configuración")
-            except Exception as e:
-                print(f"Error: {e}")
-        else:
-            self.mostrar_mensaje("Solo Android", "Esta función solo está disponible en Android")
+    """Verifica si la app tiene el rol de filtrado activado"""
+    if platform == 'android':
+        try:
+            from jnius import autoclass
+            from android import activity
+            
+            Context = autoclass('android.content.Context')
+            RoleManager = autoclass('android.app.role.RoleManager')
+            
+            role_manager = activity.getSystemService(Context.ROLE_SERVICE)
+            
+            if role_manager.isRoleHeld(RoleManager.ROLE_CALL_SCREENING):
+                self.mostrar_mensaje("✅ Activado", "La app tiene permiso para filtrar llamadas")
+            else:
+                self.mostrar_mensaje("⚠️ No activado", "Debes otorgar el permiso de filtrado en Configuración")
+                
+                # Intentar abrir la configuración de permisos especiales
+                intent = role_manager.createRequestRoleIntent(RoleManager.ROLE_CALL_SCREENING)
+                activity.startActivityForResult(intent, 1001)
+                
+        except Exception as e:
+            self.mostrar_mensaje("Error", f"No se pudo verificar: {e}")
+            print(f"Error: {e}")
+    else:
+        self.mostrar_mensaje("Solo Android", "Esta función solo está disponible en Android")
 
 
 if __name__ == '__main__':
