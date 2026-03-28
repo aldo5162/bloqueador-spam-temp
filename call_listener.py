@@ -1,5 +1,5 @@
 """
-Servicio de escucha de llamadas usando PhoneStateListener
+Servicio de escucha de llamadas usando BroadcastReceiver
 Funciona con solo permiso READ_PHONE_STATE
 """
 
@@ -9,10 +9,12 @@ import os
 from jnius import autoclass, PythonJavaClass, java_method
 from kivy.clock import Clock
 
+
 # Clases Java necesarias
 TelephonyManager = autoclass('android.telephony.TelephonyManager')
-PhoneStateListener = autoclass('android.telephony.PhoneStateListener')
 PythonActivity = autoclass('org.kivy.android.PythonActivity')
+Intent = autoclass('android.content.Intent')
+IntentFilter = autoclass('android.content.IntentFilter')
 
 
 def limpiar_numero(numero):
@@ -49,40 +51,45 @@ def debe_bloquear(numero):
     return False
 
 
-class MiPhoneStateListener(PythonJavaClass):
-    """Escucha el estado del teléfono para detectar llamadas entrantes"""
+class CallReceiver(PythonJavaClass):
+    """BroadcastReceiver para detectar llamadas entrantes"""
 
-    __javainterfaces__ = ['android/telephony/PhoneStateListener']
+    __javainterfaces__ = ['android/content/BroadcastReceiver']
     __javacontext__ = 'app'
 
     def __init__(self, callback):
         super().__init__()
         self.callback = callback
 
-    @java_method('(ILjava/lang/String;)V')
-    def onCallStateChanged(self, state, phoneNumber):
-        """Método llamado cuando cambia el estado de la llamada"""
-        if state == TelephonyManager.CALL_STATE_RINGING:
-            # Llamada entrante
-            numero_limpio = limpiar_numero(phoneNumber)
-            print(f"Llamada entrante detectada: {numero_limpio}")
+    @java_method('(Landroid/content/Context;Landroid/content/Intent;)V')
+    def onReceive(self, context, intent):
+        """Método llamado cuando se recibe una transmisión"""
+        try:
+            if intent.getAction() == TelephonyManager.ACTION_PHONE_STATE_CHANGED:
+                state = intent.getStringExtra(TelephonyManager.EXTRA_STATE)
+                if state == TelephonyManager.EXTRA_STATE_RINGING:
+                    # Llamada entrante
+                    incoming_number = intent.getStringExtra(TelephonyManager.EXTRA_INCOMING_NUMBER)
+                    numero_limpio = limpiar_numero(incoming_number)
+                    print(f"Llamada entrante detectada: {numero_limpio}")
 
-            if debe_bloquear(numero_limpio):
-                print(f"⚠️ NÚMERO BLOQUEADO: {numero_limpio}")
-                self.callback(numero_limpio, True)
-            else:
-                print(f"✓ Número permitido: {numero_limpio}")
-                self.callback(numero_limpio, False)
+                    if debe_bloquear(numero_limpio):
+                        print(f"⚠️ NÚMERO BLOQUEADO: {numero_limpio}")
+                        self.callback(numero_limpio, True)
+                    else:
+                        print(f"✓ Número permitido: {numero_limpio}")
+                        self.callback(numero_limpio, False)
+        except Exception as e:
+            print(f"Error en onReceive: {e}")
 
 
 class CallListener:
     """Clase principal para iniciar el listener de llamadas"""
 
     def __init__(self, mostrar_notificacion_callback):
-        self.listener = None
-        self.telephony_manager = None
-        self.mostrar_notificacion = mostrar_notificacion_callback
+        self.receiver = None
         self.iniciado = False
+        self.mostrar_notificacion = mostrar_notificacion_callback
 
     def iniciar(self):
         """Inicia el listener de llamadas"""
@@ -94,22 +101,18 @@ class CallListener:
             # Obtener la actividad actual
             current_activity = PythonActivity.mActivity
 
-            # Obtener el servicio de telefonía
-            self.telephony_manager = current_activity.getSystemService(
-                current_activity.TELEPHONY_SERVICE
-            )
+            # Crear el receiver
+            self.receiver = CallReceiver(self.on_call_detected)
 
-            # Crear el listener
-            self.listener = MiPhoneStateListener(self.on_call_detected)
+            # Crear el filtro para llamadas
+            intent_filter = IntentFilter()
+            intent_filter.addAction(TelephonyManager.ACTION_PHONE_STATE_CHANGED)
 
-            # Registrar el listener
-            self.telephony_manager.listen(
-                self.listener,
-                PhoneStateListener.LISTEN_CALL_STATE
-            )
+            # Registrar el receiver
+            current_activity.registerReceiver(self.receiver, intent_filter)
 
             self.iniciado = True
-            print("✅ CallListener iniciado correctamente")
+            print("✅ CallListener iniciado correctamente con BroadcastReceiver")
             return True
 
         except Exception as e:
@@ -118,15 +121,18 @@ class CallListener:
 
     def detener(self):
         """Detiene el listener de llamadas"""
-        if self.listener and self.telephony_manager:
-            self.telephony_manager.listen(self.listener, 0)
-            self.iniciado = False
-            print("CallListener detenido")
+        if self.receiver and self.iniciado:
+            try:
+                current_activity = PythonActivity.mActivity
+                current_activity.unregisterReceiver(self.receiver)
+                self.iniciado = False
+                print("CallListener detenido")
+            except Exception as e:
+                print(f"Error deteniendo: {e}")
 
     def on_call_detected(self, numero, bloqueado):
         """Callback cuando se detecta una llamada"""
         if bloqueado:
-            # Mostrar notificación en la UI (desde el hilo principal)
             Clock.schedule_once(
                 lambda dt: self.mostrar_notificacion(
                     "🚫 LLAMADA BLOQUEADA",
@@ -138,9 +144,8 @@ class CallListener:
             print(f"Llamada permitida: {numero}")
 
 
-# Instancia global para usar desde main.py
+# Instancia global
 _call_listener_instance = None
-
 
 def iniciar_call_listener(mostrar_notificacion_callback):
     """Función global para iniciar el listener"""
@@ -149,14 +154,12 @@ def iniciar_call_listener(mostrar_notificacion_callback):
         _call_listener_instance = CallListener(mostrar_notificacion_callback)
     return _call_listener_instance.iniciar()
 
-
 def detener_call_listener():
     """Función global para detener el listener"""
     global _call_listener_instance
     if _call_listener_instance:
         _call_listener_instance.detener()
         _call_listener_instance = None
-
 
 def call_listener_activo():
     """Verifica si el listener está activo"""
