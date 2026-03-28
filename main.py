@@ -11,23 +11,26 @@ from kivy.uix.popup import Popup
 from kivy.clock import Clock
 from kivy.utils import platform
 
+# Importar el listener de llamadas
+from call_listener import iniciar_call_listener, detener_call_listener, call_listener_activo
+
 
 class BloqueadorApp(App):
     def build(self):
         self.init_db()
 
-        if platform == 'android':
-            Clock.schedule_once(self.solicitar_rol_filtrado, 1)
-
+        # Crear layout principal
         self.main_layout = BoxLayout(orientation='vertical', padding=20, spacing=15)
 
+        # Título
         self.main_layout.add_widget(Label(
-            text="[b]BLOQUEADOR DE SPAM[/b]\n[small]Llama 600 y 809 bloqueadas[/small]",
+            text="[b]BLOQUEADOR DE SPAM[/b]\n[small]Bloquea llamadas 600 y 809[/small]",
             markup=True,
             size_hint_y=None,
             height=80
         ))
 
+        # Entrada de número
         self.input_num = TextInput(
             hint_text="Ej: 600 o 809 o 912345678",
             multiline=False,
@@ -36,6 +39,7 @@ class BloqueadorApp(App):
         )
         self.main_layout.add_widget(self.input_num)
 
+        # Botón agregar
         btn_add = Button(
             text="BLOQUEAR ESTE PREFIJO/NÚMERO",
             background_color=(0.9, 0.2, 0.2, 1),
@@ -45,12 +49,14 @@ class BloqueadorApp(App):
         btn_add.bind(on_press=self.agregar_a_db)
         self.main_layout.add_widget(btn_add)
 
+        # Separador
         self.main_layout.add_widget(Label(
             text="Prefijos y números bloqueados:",
             size_hint_y=None,
             height=40
         ))
 
+        # Lista de números bloqueados
         self.scroll = ScrollView()
         self.lista_layout = GridLayout(cols=1, spacing=8, size_hint_y=None)
         self.lista_layout.bind(minimum_height=self.lista_layout.setter('height'))
@@ -59,17 +65,33 @@ class BloqueadorApp(App):
         self.scroll.add_widget(self.lista_layout)
         self.main_layout.add_widget(self.scroll)
 
+        # Botón para verificar estado del servicio
         btn_estado = Button(
-            text="VERIFICAR PERMISO DE FILTRADO",
+            text="VERIFICAR SERVICIO DE ESCUCHA",
             size_hint_y=None,
             height=80
         )
-        btn_estado.bind(on_press=self.verificar_rol)
+        btn_estado.bind(on_press=self.verificar_servicio)
         self.main_layout.add_widget(btn_estado)
+
+        # Botón para reiniciar servicio (por si falla)
+        btn_reiniciar = Button(
+            text="REINICIAR SERVICIO DE ESCUCHA",
+            size_hint_y=None,
+            height=60,
+            background_color=(0.3, 0.5, 0.7, 1)
+        )
+        btn_reiniciar.bind(on_press=self.reiniciar_servicio)
+        self.main_layout.add_widget(btn_reiniciar)
+
+        # Iniciar el listener de llamadas si estamos en Android
+        if platform == 'android':
+            Clock.schedule_once(lambda dt: self.iniciar_listener_llamadas(), 2)
 
         return self.main_layout
 
     def init_db(self):
+        """Inicializa la base de datos con los prefijos por defecto"""
         self.conn = sqlite3.connect('bloqueador.db')
         self.cursor = self.conn.cursor()
         self.cursor.execute('''CREATE TABLE IF NOT EXISTS spam (
@@ -84,6 +106,7 @@ class BloqueadorApp(App):
         self.conn.commit()
 
     def agregar_a_db(self, instance):
+        """Agrega un nuevo prefijo o número a bloquear"""
         num_limpio = re.sub(r'\D', '', self.input_num.text)
         if num_limpio and len(num_limpio) >= 3:
             try:
@@ -91,13 +114,14 @@ class BloqueadorApp(App):
                 self.conn.commit()
                 self.actualizar_lista_visual()
                 self.input_num.text = ""
-                self.mostrar_mensaje("Agregado", f"{num_limpio} será bloqueado")
+                self.mostrar_mensaje("✓ Agregado", f"{num_limpio}\nserá bloqueado")
             except sqlite3.IntegrityError:
-                self.mostrar_mensaje("Ya existe", f"{num_limpio} ya está en la lista")
+                self.mostrar_mensaje("⚠️ Ya existe", f"{num_limpio}\nya está en la lista")
         else:
-            self.mostrar_mensaje("Error", "Ingresa al menos 3 dígitos")
+            self.mostrar_mensaje("❌ Error", "Ingresa al menos\n3 dígitos")
 
     def actualizar_lista_visual(self):
+        """Actualiza la lista visual de números bloqueados"""
         self.lista_layout.clear_widgets()
         self.cursor.execute("SELECT prefijo FROM spam ORDER BY prefijo")
         for (p,) in self.cursor.fetchall():
@@ -114,75 +138,66 @@ class BloqueadorApp(App):
             self.lista_layout.add_widget(item_layout)
 
     def eliminar_prefijo(self, prefijo):
+        """Elimina un prefijo de la lista de bloqueados"""
         self.cursor.execute("DELETE FROM spam WHERE prefijo = ?", (prefijo,))
         self.conn.commit()
         self.actualizar_lista_visual()
-        self.mostrar_mensaje("Eliminado", f"{prefijo} ya no será bloqueado")
+        self.mostrar_mensaje("🗑️ Eliminado", f"{prefijo}\nya no será bloqueado")
 
     def mostrar_mensaje(self, titulo, mensaje):
+        """Muestra un mensaje emergente"""
         popup = Popup(
             title=titulo,
             content=Label(
                 text=mensaje,
-                halign='left',
-                valign='top',
+                halign='center',
+                valign='middle',
                 text_size=(self.main_layout.width * 0.8, None)
             ),
-            size_hint=(0.9, 0.5),
-            title_size=18
+            size_hint=(0.85, 0.4),
+            title_size=18,
+            title_align='center'
         )
         popup.open()
-        Clock.schedule_once(lambda dt: popup.dismiss(), 4)
+        Clock.schedule_once(lambda dt: popup.dismiss(), 3)
 
-    def solicitar_rol_filtrado(self, dt):
-        """Solicita al usuario que active la app como filtro de llamadas"""
+    def iniciar_listener_llamadas(self):
+        """Inicia el listener de llamadas en segundo plano"""
         if platform == 'android':
-            try:
-                from jnius import autoclass
+            resultado = iniciar_call_listener(self.mostrar_notificacion_bloqueo)
+            if resultado:
+                print("✅ Listener de llamadas iniciado")
+                self.mostrar_mensaje("✅ Servicio activo", "La app está escuchando\nllamadas entrantes")
+            else:
+                print("❌ Error al iniciar listener")
+                self.mostrar_mensaje("❌ Error", "No se pudo iniciar\nel servicio de escucha")
 
-                PythonActivity = autoclass('org.kivy.android.PythonActivity')
-                current_activity = PythonActivity.mActivity
-
-                Context = autoclass('android.content.Context')
-                RoleManager = autoclass('android.app.role.RoleManager')
-
-                role_manager = current_activity.getSystemService(Context.ROLE_SERVICE)
-
-                if role_manager.isRoleAvailable(RoleManager.ROLE_CALL_SCREENING):
-                    if not role_manager.isRoleHeld(RoleManager.ROLE_CALL_SCREENING):
-                        intent = role_manager.createRequestRoleIntent(RoleManager.ROLE_CALL_SCREENING)
-                        current_activity.startActivityForResult(intent, 1001)
-            except Exception as e:
-                print(f"Error al solicitar rol: \n{e}")
-
-    def verificar_rol(self, instance):
-        """Verifica si la app tiene el rol de filtrado activado"""
+    def detener_listener_llamadas(self):
+        """Detiene el listener de llamadas"""
         if platform == 'android':
-            try:
-                from jnius import autoclass
+            detener_call_listener()
+            print("Listener de llamadas detenido")
 
-                PythonActivity = autoclass('org.kivy.android.PythonActivity')
-                current_activity = PythonActivity.mActivity
+    def reiniciar_servicio(self, instance):
+        """Reinicia el servicio de escucha de llamadas"""
+        if platform == 'android':
+            self.mostrar_mensaje("🔄 Reiniciando", "Deteniendo y reiniciando\nel servicio...")
+            self.detener_listener_llamadas()
+            Clock.schedule_once(lambda dt: self.iniciar_listener_llamadas(), 1)
 
-                Context = autoclass('android.content.Context')
-                RoleManager = autoclass('android.app.role.RoleManager')
-
-                role_manager = current_activity.getSystemService(Context.ROLE_SERVICE)
-
-                if role_manager.isRoleHeld(RoleManager.ROLE_CALL_SCREENING):
-                    self.mostrar_mensaje("✅ Activado", "La app tiene permiso\npara filtrar llamadas")
-                else:
-                    self.mostrar_mensaje("⚠️ No activado", "Debes otorgar el permiso\nde filtrado en Configuración")
-
-                    # Solicitar el rol
-                    intent = role_manager.createRequestRoleIntent(RoleManager.ROLE_CALL_SCREENING)
-                    current_activity.startActivityForResult(intent, 1001)
-
-            except Exception as e:
-                self.mostrar_mensaje("Error", f"No se pudo verificar:\n{str(e)}")
-                print(f"Error: {e}")
+    def verificar_servicio(self, instance):
+        """Verifica si el servicio de escucha está activo"""
+        if platform == 'android':
+            if call_listener_activo():
+                self.mostrar_mensaje("✅ Servicio activo", "La app está escuchando\nllamadas entrantes")
+            else:
+                self.mostrar_mensaje("⚠️ Servicio inactivo", "El servicio no está activo\nPresiona REINICIAR")
         else:
-            self.mostrar_mensaje("Solo Android", "Esta función solo\nestá disponible en Android")
+            self.mostrar_mensaje("📱 Solo Android", "Esta función solo está\ndisponible en Android")
+
+    def mostrar_notificacion_bloqueo(self, titulo, mensaje):
+        """Muestra una notificación de bloqueo (desde el hilo principal)"""
+        self.mostrar_mensaje(titulo, mensaje)
 
 
 if __name__ == '__main__':
